@@ -1,6 +1,10 @@
+// Para compilar:
+// g++ escavadeira.cpp -lglut -lGLU -lGL
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cstring>
 #include <GL/glut.h>
 
 // variaveis globais
@@ -9,8 +13,20 @@ GLfloat ang_braco1_escavadeira = 45;
 GLfloat ang_braco2_escavadeira = 90;
 GLfloat ang_braco3_escavadeira = 225;
 GLfloat dis_braco2_escavadeira = 9;
-GLfloat window_size = 25; // tamanho da janela
+GLfloat window_size = 100;
+
 int active_axis = 1;
+int pos_x_controles = -30;
+int pos_y_controles = 20;
+
+void displayText(float x, float y, int r, int g, int b, const char* string) {
+	int j = strlen(string);
+	glColor3f(r, g, b);
+	glRasterPos2f(x, y);
+	for (int i = 0; i < j; i++) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, string[i]);
+	}
+}
 
 void desenhaBraco1() {
     glBegin(GL_POLYGON);
@@ -36,7 +52,7 @@ void desenhaBraco1() {
 }
 
 void desenhaBraco2() {
-
+  
     glBegin(GL_POLYGON);
         glVertex2f(0.3,8.0);
         glVertex2f(0.6,-0.8);
@@ -44,7 +60,7 @@ void desenhaBraco2() {
         glVertex2f(-0.3,8.0);    
     glEnd();
  
-    // draw stroke of previus GL_POLYGON
+    // tracado
     glColor3f(0.2f,0.2f,0.2f);
     glLineWidth(2);
     glBegin(GL_LINE_LOOP);
@@ -156,13 +172,25 @@ void Desenha(void)
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Desenha o ceu
-    glColor3f(0.1f, 0.1f, 0.9f);
+    glColor3f(0.3f, 0.3f, 0.9f);
     glBegin(GL_POLYGON);
     glVertex2f(-window_size, window_size);
     glVertex2f(window_size, window_size);
     glVertex2f(window_size, -window_size);
     glVertex2f(-window_size, -window_size);
     glEnd();
+
+    // apresenta os controles na tela
+    displayText(pos_x_controles,pos_y_controles, 1,1,1, "Controles:");
+    displayText(pos_x_controles,pos_y_controles-1, 1,1,1, "F1: controla o braco 1");
+    displayText(pos_x_controles,pos_y_controles-2, 1,1,1, "F2: controla o braco 2");
+    displayText(pos_x_controles,pos_y_controles-3, 1,1,1, "F3: controla a pa");
+    displayText(pos_x_controles,pos_y_controles-4, 1,1,1, "F4: controla a distancia do eixo 2");
+    displayText(pos_x_controles,pos_y_controles-5, 1,1,1, "Setas para cima: aumenta o angulo do eixo ativo");
+    displayText(pos_x_controles,pos_y_controles-6, 1,1,1, "Setas para baixo: diminui o angulo do eixo ativo");
+    displayText(pos_x_controles,pos_y_controles-7, 1,1,1, "Setas para esquerda: move a escavadeira para a esquerda");
+    displayText(pos_x_controles,pos_y_controles-8, 1,1,1, "Setas para direita: move a escavadeira para a direita");
+    displayText(pos_x_controles,pos_y_controles-9, 1,1,1, "Esc: sai do programa");
 
     // Desenha o "chão"
     glColor3f(0.5f, 0.5f, 0.5f);
@@ -173,7 +201,7 @@ void Desenha(void)
     glVertex2f(-window_size, -window_size);
     glEnd();
 
-    // Desenha um objeto modelado com transformações hierárquicas
+    // desenha a escavadeira
     glPushMatrix();
     glTranslatef(pos_x_escavadeira, -10.0f, 0.0f);
 
@@ -206,10 +234,8 @@ void Desenha(void)
 
     glPopMatrix();
 
-    // Executa os comandos OpenGL
     glFlush();
 }
-
 
 
 void AlteraTamanhoJanela(GLsizei w, GLsizei h)
@@ -333,20 +359,18 @@ void Inicializa (void)
   std::cout << "Setas para baixo: diminui o angulo do eixo ativo" << std::endl;
   std::cout << "Setas para esquerda: move a escavadeira para a esquerda" << std::endl;
   std::cout << "Setas para direita: move a escavadeira para a direita" << std::endl;
-
   std::cout << "Esc: sai do programa" << std::endl;
-	// Define a cor de fundo da janela de visualização como branca
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    
+
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
 }
 
 int main(int argc, char **argv)
 {
   glutInit(&argc, argv);  
 	glutInitWindowPosition(5,5);     
-	glutInitWindowSize(450,300);  
+	glutInitWindowSize(800,600);  
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);  
-	glutCreateWindow("atividade 1"); 
+	glutCreateWindow("2 Atividade - Hierarquia e transformacoes geometricas"); 
  
 	glutDisplayFunc(Desenha);  
 
