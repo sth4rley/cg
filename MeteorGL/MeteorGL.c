@@ -12,19 +12,19 @@ typedef struct
     GLfloat angulo;
     GLfloat velocidade;
     GLfloat tamanho;
-    int sentido;
+    int sentido; // 0 = esquerda, 1 = direita
 } Meteoro;
 
-#define MAX_METEOROS 15
-
-enum GameState
+enum EstadoJogo 
 {
     MENU,
-    PLAYING,
+    JOGANDO,
     GAMEOVER
 };
 
-enum GameState gameState = MENU; // Estado inicial do jogo é o menu
+#define MAX_METEOROS 50
+
+enum EstadoJogo estadoJogo = MENU; // Estado inicial do jogo é o menu
 
 GLfloat largura = 1024.0f;
 GLfloat altura = 768.0f;
@@ -42,76 +42,62 @@ int pontos = 0;
 int keyStates[256];
 int specialKeyStates[256];
 
-void displayText(float x, float y, int r, int g, int b, const char *string)
-{
-    int j = strlen(string);
-    glColor3f(r, g, b);
-    glRasterPos2f(x, y);
-    for (int i = 0; i < j; i++)
-    {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, string[i]);
-    }
-}
-
-void drawMenu()
-{
-    // Define as propriedades do texto do menu
-    float menuTextPosX = -50.0f;
-    float menuTextPosY = 50.0f;
-    int menuTextR = 255;
-    int menuTextG = 255;
-    int menuTextB = 255;
-
-    // Desenha o título do menu
-    displayText(menuTextPosX, menuTextPosY, menuTextR, menuTextG, menuTextB, "Meu Jogo");
-
-    // Desenha as opções do menu
-    menuTextPosY -= 30.0f;
-    displayText(menuTextPosX, menuTextPosY, menuTextR, menuTextG, menuTextB, "1 - Jogar");
-    menuTextPosY -= 20.0f;
-    displayText(menuTextPosX, menuTextPosY, menuTextR, menuTextG, menuTextB, "2 - Sair");
-}
-
-void drawGameOver(){
-    // Define as propriedades do texto do menu
-    float menuTextPosX = -50.0f;
-    float menuTextPosY = 50.0f;
-    int menuTextR = 255;
-    int menuTextG = 255;
-    int menuTextB = 255;
-
-    // Desenha o título do menu
-    displayText(menuTextPosX, menuTextPosY, menuTextR, menuTextG, menuTextB, "Game Over");
-
-    // Desenha as opções do menu
-    menuTextPosY -= 30.0f;
-    displayText(menuTextPosX, menuTextPosY, menuTextR, menuTextG, menuTextB, "1 - Jogar");
-    menuTextPosY -= 20.0f;
-    displayText(menuTextPosX, menuTextPosY, menuTextR, menuTextG, menuTextB, "2 - Sair");
-}
-
+// funcoes de entrada
+void keyboard(unsigned char key, int x, int y) { keyStates[key] = 1; }
+void keyboardUp(unsigned char key, int x, int y) { keyStates[key] = 0; }
+void specialKeys(int key, int x, int y) { specialKeyStates[key] = 1; }
+void specialKeysUp(int key, int x, int y) { specialKeyStates[key] = 0; }
 void initKeyboard()
 {
     memset(keyStates, 0, sizeof(keyStates));
     memset(specialKeyStates, 0, sizeof(specialKeyStates));
 }
 
-void inicializarMeteoros()
+void displayText(float x, float y, int r, int g, int b, const char *string) // funcao para escrever texto na tela
 {
-    for (int i = 0; i < MAX_METEOROS; i++)
-    {
-        meteoros[i].posX = rand() % (int)(largura * 2) - largura;
-        meteoros[i].posY = altura;
-        meteoros[i].velocidade = (rand() % 10 + 1) / 100.0f;
-        meteoros[i].angulo = rand() % 360;
-        meteoros[i].tamanho = rand() % 5 + 1;
-        meteoros[i].sentido = rand() % 2;
-    }
+    glColor3f(r, g, b);
+    glRasterPos2f(x, y); // Posição do texto na tela
+    for (int i = 0; i < strlen(string); i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
 }
 
-// desenha o placar de pontos do jogo na tela
-// os pontos sao contabilizados a cada meteoro que passa pela tela
-void desenhaPlacar()
+void desenhaMenu() // Desenha o menu
+{
+    float menuTextPosX = -50.0f;
+    float menuTextPosY = 50.0f;
+
+    // título do menu      
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, "MeteorGL");
+
+    // opções do menu
+    menuTextPosY -= 30.0f;
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, "1 - Jogar");
+    menuTextPosY -= 20.0f;
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, "2 - Sair");
+}
+
+void desenhaGameOver() // Desenha a tela de game over
+{
+    float menuTextPosX = -50.0f;
+    float menuTextPosY = 50.0f;
+
+    // Desenha o título do menu
+    // Ajusta o tamanho do texto do título
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, "Você perdeu!");
+
+    // escreve a pontuação do jogador
+    menuTextPosY -= 30.0f;
+    char texto[30];
+    sprintf(texto, "Pontos: %d", pontos);
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, texto);
+
+    // opções do menu
+    menuTextPosY -= 30.0f;
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, "1 - Jogar novamente");
+    menuTextPosY -= 20.0f;
+    displayText(menuTextPosX, menuTextPosY, 255, 255, 255, "2 - Sair");
+}
+
+void desenhaPlacar() // Desenha o placar na tela
 {
     char texto[30];
     sprintf(texto, "Pontos: %d", pontos);
@@ -120,8 +106,6 @@ void desenhaPlacar()
 
 void desenhaFoguetePlayer()
 {
-    // Desenha um foguete com polígonos utilizando transformações geométricas e hierarquia
-
     // Corpo do foguete
     glPushMatrix();
     glColor3f(0.7f, 0.7f, 0.7f);
@@ -172,125 +156,49 @@ void desenhaFoguetePlayer()
     glPopMatrix();
 }
 
-void display()
-{
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+/* Funcoes que tratam dos meteoros */
 
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    if (gameState == MENU)
-    {
-        drawMenu();
-    }
-    else if (gameState == PLAYING)
-    {
-
-        desenhaFoguetePlayer();
-
-        for (int i = 0; i < MAX_METEOROS; i++)
-        {
-            glPushMatrix();
-            glTranslatef(meteoros[i].posX, meteoros[i].posY, 0.0f);
-            glRotatef(meteoros[i].angulo, 0.0f, 0.0f, 1.0f);
-            glColor3f(0.2f, 0.2f, 0.2f);
-            glBegin(GL_POLYGON);
-            glVertex2f(-meteoros[i].tamanho, -meteoros[i].tamanho);
-            glVertex2f(meteoros[i].tamanho, -meteoros[i].tamanho);
-            glVertex2f(meteoros[i].tamanho, meteoros[i].tamanho);
-            glVertex2f(-meteoros[i].tamanho, meteoros[i].tamanho);
-            glEnd();
-            glPopMatrix();
-        }
-    desenhaPlacar();
-    } else if (gameState == GAMEOVER) {
-        drawGameOver();
-    }
-
-    glFlush();
-}
-
-void colisoesBordaJanela()
-{
-    if (posicaoFoguetePlayerX > largura)
-        posicaoFoguetePlayerX = -largura;
-    if (posicaoFoguetePlayerX < -largura)
-        posicaoFoguetePlayerX = largura;
-    if (posicaoFoguetePlayerY > altura)
-        posicaoFoguetePlayerY = -altura;
-    if (posicaoFoguetePlayerY < -altura)
-        posicaoFoguetePlayerY = altura;
-}
-
-void colisoesMeteoros()
+void inicializarMeteoros() // Inicializa os com valores aleatórios
 {
     for (int i = 0; i < MAX_METEOROS; i++)
     {
-        if (posicaoFoguetePlayerX > meteoros[i].posX - meteoros[i].tamanho &&
-            posicaoFoguetePlayerX < meteoros[i].posX + meteoros[i].tamanho &&
-            posicaoFoguetePlayerY > meteoros[i].posY - meteoros[i].tamanho &&
-            posicaoFoguetePlayerY < meteoros[i].posY + meteoros[i].tamanho)
-        {
-            // reinicia o jogo se houver colisão
-            // gameState = MENU;
-            gameState = GAMEOVER;
-            posicaoFoguetePlayerX = 0.0f;
-            posicaoFoguetePlayerY = 0.0f;
-            anguloFoguetePlayer = 0.0f;
-            pontos = 0;
-        }
+        meteoros[i].posX = rand() % (int)(largura * 2) - largura;
+        meteoros[i].posY = altura;
+        meteoros[i].velocidade = (rand() % 10 + 1) / 100.0f;
+        meteoros[i].angulo = rand() % 360;
+        meteoros[i].tamanho = rand() % 5 + 1;
+        meteoros[i].sentido = rand() % 2;
     }
 }
 
-void comandosMenu()
+void desenhaMeteoros()  // Desenha os meteoros na tela
 {
-    if (keyStates['1'] == 1)
-    {
-        gameState = PLAYING;
-    }
+  for (int i = 0; i < MAX_METEOROS; i++)
+  {
+    glColor3f(0.2f, 0.2f, 0.2f);
+    glPushMatrix();
+    glTranslatef(meteoros[i].posX, meteoros[i].posY, 0.0f);
+    glRotatef(meteoros[i].angulo, 0.0f, 0.0f, 1.0f);
 
-    if (keyStates['2'] == 1)
-    {
-        exit(0);
-    }
+    glBegin(GL_POLYGON);
+      glVertex2f(-meteoros[i].tamanho, -meteoros[i].tamanho);
+      glVertex2f(meteoros[i].tamanho, -meteoros[i].tamanho);
+      glVertex2f(meteoros[i].tamanho, meteoros[i].tamanho);
+      glVertex2f(-meteoros[i].tamanho, meteoros[i].tamanho);
+    glEnd();
+
+    glPopMatrix();
+  }
 }
 
-void comandosJogo()
-{
-
-    GLfloat velocidade = largura * 0.0004f;
-    if (keyStates['w'] == 1)
-    {
-        GLfloat movimentoX = -velocidade * sin(anguloFoguetePlayer * M_PI / 180.0f);
-        GLfloat movimentoY = velocidade * cos(anguloFoguetePlayer * M_PI / 180.0f);
-
-        posicaoFoguetePlayerX += movimentoX;
-        posicaoFoguetePlayerY += movimentoY;
-    }
-    if (keyStates['a'] == 1)
-    {
-        anguloFoguetePlayer += 0.3f;
-    }
-    if (keyStates['d'] == 1)
-    {
-        anguloFoguetePlayer -= 0.3f;
-    }
-    // volta pra o menu com a tecla ESC
-    if (keyStates[27] == 1)
-    {
-        gameState = MENU;
-    }
-}
-
-// funcao que faz os meteoros se movimentarem
-void movimentaMeteoros()
+void movimentaMeteoros() // Movimenta os meteoros na tela
 {
     // movimenta os meteoros
     for (int i = 0; i < MAX_METEOROS; i++)
     {
         meteoros[i].posY -= meteoros[i].velocidade;
 
-        if (meteoros[i].posY < -altura)
+        if (meteoros[i].posY < -altura) // quando o meteoro passa da tela, ele é reposicionado 
         {
             meteoros[i].posX = rand() % (int)(largura * 2) - largura;
             meteoros[i].posY = altura;
@@ -304,31 +212,68 @@ void movimentaMeteoros()
     }
 }
 
-void idle()
+void colisoesMeteoros() // Verifica se houve colisão entre o foguete e os meteoros
 {
-    if (gameState == PLAYING)
+    for (int i = 0; i < MAX_METEOROS; i++)
     {
-        comandosJogo();
-        movimentaMeteoros();
-        colisoesMeteoros();
-        colisoesBordaJanela();
-      
+        if (posicaoFoguetePlayerX > meteoros[i].posX - meteoros[i].tamanho &&
+            posicaoFoguetePlayerX < meteoros[i].posX + meteoros[i].tamanho &&
+            posicaoFoguetePlayerY > meteoros[i].posY - meteoros[i].tamanho &&
+            posicaoFoguetePlayerY < meteoros[i].posY + meteoros[i].tamanho)
+        {
+            estadoJogo = GAMEOVER; 
+        }
     }
-    else if (gameState == MENU)
-    {
-        comandosMenu();
-    }
-    else if (gameState == GAMEOVER)
-    {
-        comandosMenu();
-    }
-    glutPostRedisplay();
 }
 
-void reshape(GLsizei w, GLsizei h)
+void colisoesBordaJanela() // trata a colisão do foguete com as bordas da janela
 {
-    if (h == 0)
-        h = 1;
+    if (posicaoFoguetePlayerX > largura) posicaoFoguetePlayerX = -largura;
+    if (posicaoFoguetePlayerX < -largura) posicaoFoguetePlayerX = largura;
+    if (posicaoFoguetePlayerY > altura) posicaoFoguetePlayerY = -altura;
+    if (posicaoFoguetePlayerY < -altura) posicaoFoguetePlayerY = altura;
+}
+
+/* Funcoes que tratam dos comandos do jogo */
+
+void comandosMenu()
+{
+    if (keyStates['1'] == 1) estadoJogo = JOGANDO; 
+    if (keyStates['2'] == 1) exit(0);
+}
+
+void comandosGameOver()
+{
+    if (keyStates['1'] == 1)
+    {
+      posicaoFoguetePlayerX = posicaoFoguetePlayerY = anguloFoguetePlayer = 0.0f;
+      pontos = 0;
+      estadoJogo = JOGANDO;
+      inicializarMeteoros();
+    }
+
+    if (keyStates['2'] == 1) exit(0);
+    
+}
+
+void comandosJogo() // trata os comandos do jogo
+{
+    GLfloat velocidade = largura * 0.0004f;
+    if (keyStates['w'] == 1)
+    {
+        // calcula o movimento do foguete baseado no angulo que ele esta virado 
+        // 3.1416 / 180.0f = 1 grau
+        posicaoFoguetePlayerX += (-velocidade * sin(anguloFoguetePlayer * 3.1416 / 180.0f)); // sen -> componente x
+        posicaoFoguetePlayerY += (+velocidade * cos(anguloFoguetePlayer * 3.1416 / 180.0f)); // cos -> componente y 
+    }
+    if (keyStates['a'] == 1) anguloFoguetePlayer += 0.3f; 
+    if (keyStates['d'] == 1) anguloFoguetePlayer -= 0.3f; 
+    if (keyStates[27] == 1) estadoJogo = MENU; // ESC 
+}
+
+void reshape(GLsizei w, GLsizei h) // trata o redimensionamento da janela
+{
+    if (h == 0) h = 1;
 
     glViewport(0, 0, w, h);
 
@@ -338,13 +283,11 @@ void reshape(GLsizei w, GLsizei h)
     float aspectRatio = (float)w / h;
     const float scale = 100.0f;
 
-    if (w <= h)
-    {
+    if (w <= h) {
         largura = scale;
         altura = scale / aspectRatio;
     }
-    else
-    {
+    else {
         largura = scale * aspectRatio;
         altura = scale;
     }
@@ -352,15 +295,50 @@ void reshape(GLsizei w, GLsizei h)
     gluOrtho2D(-largura, largura, -altura, altura);
 }
 
-void keyboard(unsigned char key, int x, int y) { keyStates[key] = 1; }
+void display()
+{
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-void keyboardUp(unsigned char key, int x, int y) { keyStates[key] = 0; }
+    glClear(GL_COLOR_BUFFER_BIT);
 
-void specialKeys(int key, int x, int y) { specialKeyStates[key] = 1; }
+    if (estadoJogo == MENU)
+    {
+        desenhaMenu();
+    }
+    else if (estadoJogo == JOGANDO)
+    {
+      desenhaFoguetePlayer();
+      desenhaMeteoros();  
+      desenhaPlacar();
+    } else if (estadoJogo == GAMEOVER) {
+        desenhaGameOver();
+    }
 
-void specialKeysUp(int key, int x, int y) { specialKeyStates[key] = 0; }
+    glFlush();
+}
 
-void init()
+void idle()
+{
+    if (estadoJogo == JOGANDO)
+    {
+        comandosJogo();
+        movimentaMeteoros();
+        colisoesMeteoros();
+        colisoesBordaJanela(); 
+    }
+    else if (estadoJogo == MENU)
+    {
+        comandosMenu();
+    }
+    else if (estadoJogo == GAMEOVER)
+    {
+        comandosGameOver();
+    }
+    glutPostRedisplay();
+}
+
+void inicializa()
 {
     glClearColor(0.05f, 0.05f, 0.15f, 1.0f);
     initKeyboard();
@@ -375,18 +353,19 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutCreateWindow("MeteorGL");
 
-    glutDisplayFunc(display);
-    glutIdleFunc(idle);
+    glutDisplayFunc(display); // funcao que sera chamada para desenhar
+    glutIdleFunc(idle); // funcao que sera chamada quando nao tiver eventos
 
-    glutReshapeFunc(reshape);
+    glutReshapeFunc(reshape); // ajusta a janela quando ela for redimensionada
 
-    glutKeyboardFunc(keyboard);
-    glutKeyboardUpFunc(keyboardUp);
-    glutSpecialFunc(specialKeys);
-    glutSpecialUpFunc(specialKeysUp);
+    glutKeyboardFunc(keyboard); // funcao que sera chamada quando uma tecla for pressionada
+    glutKeyboardUpFunc(keyboardUp); // funcao que sera chamada quando uma tecla for solta
+    glutSpecialFunc(specialKeys); // funcao que sera chamada quando uma tecla especial for pressionada
+    glutSpecialUpFunc(specialKeysUp); // funcao que sera chamada quando uma tecla especial for solta 
 
-    init();
+    inicializa();
 
     glutMainLoop();
+
     return 0;
 }
