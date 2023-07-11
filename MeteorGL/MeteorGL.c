@@ -1,3 +1,8 @@
+// Para compilar 
+// g++ MeteorGL.c -lglut -lGLU -lGL
+// ou
+// gcc MeteorGL.c -lglut -lGLU -lGL
+
 #include <GL/gl.h>
 #include <stdio.h>
 #include <stdlib.h>
